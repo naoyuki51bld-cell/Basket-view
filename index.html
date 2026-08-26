@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>都留高男子バスケ部の軌跡 (保護者・OB閲覧用)</title>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #e3f2fd; margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); overflow: hidden; padding-bottom: 20px;}
+        .app-header { background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%); color: white; padding: 18px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .app-header h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+        .tabs { display: flex; gap: 8px; background: #fff; padding: 12px 15px; overflow-x: auto; border-bottom: 1px solid #eee; }
+        .tab-button { flex: 0 0 auto; padding: 10px 16px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; border-radius: 20px; background: #f0f0f0; color: #666; transition: 0.3s; white-space: nowrap; }
+        .tab-button.active { background: #1565c0; color: white; box-shadow: 0 4px 10px rgba(21,101,192,0.3); }
+        .tab-content { display: none; padding: 15px; }
+        .tab-content.active { display: block; }
+        .filter-bar { display: flex; align-items: center; gap: 10px; background: white; padding: 12px 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px; border: 1px solid #eee; }
+        .filter-label { font-weight: bold; color: #1565c0; font-size: 13px; white-space: nowrap; }
+        .filter-select { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: #fafafa; outline: none; }
+        .filter-btn { padding: 8px 12px; background: #eceff1; border: none; border-radius: 6px; cursor: pointer; color: #333; font-weight: bold; font-size: 12px; transition: 0.2s; white-space: nowrap; }
+        .form-group { margin-bottom: 15px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+        .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .btn-outline { background: white; color: #1565c0; border: 2px solid #1565c0; box-shadow: none; }
+        .btn-compact { padding: 4px 8px; font-size: 11px; min-width: auto; height: fit-content; margin-top: 0; box-shadow: none; border-radius: 6px;}
+        .schedule-card { border: 1px solid #eee; padding: 20px; margin-bottom: 15px; border-radius: 12px; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        #calendar { max-width: 100%; height: 450px; margin-bottom: 20px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.03);}
+        .fc-event-title { font-size: 10px; font-weight: bold; white-space: normal !important; line-height: 1.2;}
+        .fc-h-event { border: none !important; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
+        th { background: #1565c0; color: white; font-weight: normal; }
+        .match-card { background: white; border: 1px solid #eee; border-left: 6px solid #1565c0; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .comment-box { background:#f5f5f5; padding:12px; border-radius:8px; margin-bottom:10px; font-size:13px; text-align:left; border-left:4px solid #ccc;}
+        .comment-teacher { background:#e3f2fd; border-left:4px solid #1565c0; }
+        .user-header { display: flex; justify-content: flex-end; padding: 15px 20px; background: #e3f2fd; margin: 15px; border-radius: 10px; border-left: 4px solid #1565c0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="app-header"><h1>🏀 都留高男子バスケ部の軌跡</h1></div>
+
+    <div id="loginArea" style="padding: 30px 20px;">
+        <p style="text-align:center; font-size:14px; color:#555; font-weight:bold; margin-bottom:20px;">関係者用閲覧アプリです。<br>パスワードを入力してください。</p>
+        <div class="form-group"><input type="number" id="viewerPass" placeholder="4桁の数字を入力" style="text-align:center; font-size:20px; letter-spacing:5px;"></div>
+        <button class="btn" onclick="window.login()">ログイン</button>
+        <p id="msg-login" style="color:#d32f2f; text-align:center; font-weight:bold; font-size:14px; margin-top:15px;"></p>
+    </div>
+
+    <div id="mainArea" style="display: none;">
+        <div class="user-header">
+            <button class="btn-compact" style="background:#9e9e9e; color:white; border:none;" onclick="window.logout()">ログアウト</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="window.openTab(event, 'tab-view-schedule')">📅 予定閲覧</button>
+            <button class="tab-button" onclick="window.openTab(event, 'tab-view-match')">📊 試合閲覧</button>
+        </div>
+
+        <!-- 予定閲覧 -->
+        <div id="tab-view-schedule" class="tab-content active">
+            <!-- 📢 顧問からの連絡枠 -->
+            <div id="noticeArea" class="schedule-card" style="display:none; border-left:5px solid #ff9800; background:#fff3e0; margin-bottom:15px;">
+                <h4 style="margin-top:0; color:#e65100;">📢 顧問からの連絡</h4>
+                <div id="noticeContent" style="font-size:14px; white-space:pre-wrap; color:#333;"></div>
+            </div>
+
+            <p style="font-size:12px; color:#666; text-align:center; margin-top:0;">日付をタップすると詳細が表示されます</p>
+            <div id="calendar"></div>
+            
+            <div id="viewDetailArea" class="schedule-card" style="display:none; border-left: 5px solid #1565c0;">
+                <h3 id="viewDetailTitle" style="color: #1565c0; margin-top:0;"></h3>
+                <p id="viewDetailContent" style="font-size:14px; line-height:1.8; color:#444;"></p>
+                <button class="btn btn-outline" style="padding:10px; margin-top:10px;" onclick="document.getElementById('viewDetailArea').style.display='none'">閉じる</button>
+            </div>
+        </div>
+
+        <!-- 試合閲覧 -->
+        <div id="tab-view-match" class="tab-content">
+            <div class="filter-bar">
+                <div class="filter-label">種別</div>
+                <select id="matchFilter" class="filter-select" onchange="window.loadMatches()">
+                    <option value="すべて">すべて</option>
+                    <option value="公式戦">公式戦</option>
+                    <option value="練習試合">練習試合</option>
+                </select>
+                <button class="filter-btn" onclick="window.reloadMatches()">🔄 更新</button>
+            </div>
+            <div id="matchListArea">読み込み中...</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyAAkU_rCv3qhu1hnYIKf2909eHsCGeFhko", authDomain: "share-basket-73d63.firebaseapp.com", projectId: "share-basket-73d63", storageBucket: "share-basket-73d63.firebasestorage.app", messagingSenderId: "46798696089", appId: "1:46798696089:web:0efca85070d97f5119d208" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app); const db = getFirestore(app);
+    let calendar, globalSchedules = [], globalMorning = [], globalMatches = [];
+
+    function getWeekday(dStr) { if(!dStr) return ''; const days = ['日','月','火','水','木','金','土']; return days[new Date(dStr).getDay()]; }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await signInAnonymously(auth);
+            if (localStorage.getItem('basketball_viewer_logged_in') === 'true') { showMainScreen(); }
+        } catch(e) { console.error("接続エラー"); }
+    });
+
+    window.login = async () => { 
+        const inputPass = document.getElementById('viewerPass').value.trim();
+        if(!inputPass) return document.getElementById('msg-login').innerText = "パスワードを入力してください";
+        
+        const snap = await getDoc(doc(db, "settings", "general"));
+        let correctPass = snap.exists() && snap.data().viewerPassword ? snap.data().viewerPassword : "";
+
+        if(!correctPass) return document.getElementById('msg-login').innerText = "パスワードが設定されていません。顧問の先生にお問い合わせください。";
+
+        if(inputPass === correctPass) { localStorage.setItem('basketball_viewer_logged_in', 'true'); showMainScreen(); } 
+        else { document.getElementById('msg-login').innerText = "パスワードが違います"; }
+    };
+    window.logout = () => { if(confirm("ログアウトしますか？")) { localStorage.removeItem('basketball_viewer_logged_in'); location.reload(); } };
+
+    async function showMainScreen() {
+        document.getElementById('loginArea').style.display = 'none'; document.getElementById('mainArea').style.display = 'block';
+        await loadAllData(); initCalendar(); window.loadMatches();
+    }
+
+    async function loadSettings() {
+        const snap = await getDoc(doc(db, "settings", "general"));
+        if(snap.exists() && snap.data().noticeVisible && snap.data().noticeText) {
+            document.getElementById('noticeArea').style.display = 'block';
+            document.getElementById('noticeContent').innerText = snap.data().noticeText;
+        } else {
+            document.getElementById('noticeArea').style.display = 'none';
+        }
+    }
+
+    async function loadAllData() {
+        await loadSettings();
+        globalSchedules = (await getDocs(collection(db, "schedules"))).docs.map(d=>({id:d.id, ...d.data()}));
+        globalMorning = (await getDocs(collection(db, "morning"))).docs.map(d=>d.id);
+        globalMatches = (await getDocs(query(collection(db, "matches"), orderBy("date", "desc")))).docs.map(d=>({id:d.id, ...d.data()}));
+    }
+
+    window.openTab = function(evt, tabId) {
+        document.querySelectorAll(".tab-content, .tab-button").forEach(el => el.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active"); evt.currentTarget.classList.add("active");
+        if (tabId === 'tab-view-schedule' && calendar) calendar.render();
+    };
+
+    function initCalendar() {
+        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: 'dayGridMonth', locale: 'ja', headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
+            events: globalSchedules.map(d => {
+                let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' : '');
+                let locStr = (d.location && d.location !== '都留高') ? d.location : '';
+                let bg = d.eventType==='練習試合' ? '#ff9800' : (d.eventType==='公式戦'?'#f44336':'#4CAF50');
+                return { id: d.id, title: `[${d.eventType||'練習'}] ${timeStr} ${locStr}`, start: d.date, allDay: true, backgroundColor: bg, borderColor: bg, extendedProps: d };
+            }),
+            eventContent: function(arg) {
+                let d = arg.event.extendedProps;
+                let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' : '');
+                let locStr = (d.location && d.location !== '都留高') ? d.location : '';
+                let bg = d.eventType==='練習試合' ? '#ff9800' : (d.eventType==='公式戦'?'#f44336':'#4CAF50');
+                let html = `<div style="background:${bg}; color:white; padding:2px; border-radius:3px; font-size:9px; text-align:center;"><div>[${d.eventType||'練習'}]</div>`;
+                if(timeStr) html += `<div>${timeStr}</div>`; if(locStr) html += `<div>${locStr}</div>`; html += `</div>`; return { html: html };
+            },
+            dayCellContent: function(arg) {
+                const localStr = new Date(arg.date.getTime() - (arg.date.getTimezoneOffset()*60000)).toISOString().split('T')[0];
+                const hasRem = globalSchedules.some(s => s.date === localStr && s.remarks);
+                const hasMorn = globalMorning.includes(localStr);
+                let badges = ''; if(hasMorn) badges += '<span style="color:#ff9800; font-weight:bold; margin-left:4px;">〇</span>'; if(hasRem) badges += '<span style="color:red; font-weight:bold; margin-left:2px;">*</span>';
+                return { html: `<div style="text-align:right; padding:2px;">${arg.dayNumberText}${badges}</div>` };
+            },
+            eventClick: function(info) {
+                const d = info.event.extendedProps; document.getElementById('viewDetailArea').style.display = 'block'; 
+                document.getElementById('viewDetailTitle').innerText = `📅 ${d.date} (${getWeekday(d.date)}) の詳細`;
+                let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' + (d.endTime||'') : '未定');
+                let detail = `<b style="color:#1565c0;">【${d.eventType}】</b><br><br><b>時間:</b> ${timeStr}<br><b>場所:</b> ${d.location||'未定'}<br><b>備考:</b> ${d.remarks||'なし'}<br>`;
+                if (globalMorning.includes(d.date)) detail += `<br><span style="color:#ff9800; font-weight:bold;">🌅 朝練あり(〇)</span>`;
+                document.getElementById('viewDetailContent').innerHTML = detail; document.getElementById('viewDetailArea').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        calendar.render();
+    }
+
+    window.reloadMatches = async function() { document.getElementById('matchListArea').innerHTML = "最新読込中..."; await loadAllData(); window.loadMatches(); };
+    window.toggleDetails = function(id) { const el = document.getElementById(`details-${id}`); el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
+
+    window.loadMatches = function() {
+        const filter = document.getElementById('matchFilter').value; let html = "";
+        globalMatches.forEach(m => {
+            if(filter !== 'すべて' && m.type !== filter) return;
+            const res = m.scoreOurs > m.scoreTheirs ? "<span style='color:red'>勝利</span>" : (m.scoreOurs < m.scoreTheirs ? "<span style='color:blue'>敗北</span>" : "引分");
+            let imgHtml = m.imageUrl ? `<img src="${m.imageUrl}" style="max-width:100%; border-radius:4px; margin-top:10px;">` : '';
+            let linksHtml = ""; for(let i=1; i<=5; i++) if(m['linkUrl'+i]) linksHtml += `<a href="${m['linkUrl'+i]}" target="_blank" style="display:inline-block; margin-right:15px; margin-bottom:8px; color:#1565c0; font-weight:bold; text-decoration:none;">🔗 ${m['linkTitle'+i]||'リンク'+i}</a>`;
+            if(linksHtml) linksHtml = `<div style="margin:10px 0; font-size:13px; background:#e3f2fd; padding:10px; border-radius:6px;">${linksHtml}</div>`;
+            
+            let statsHtml = "";
+            if (m.stats && m.stats.length > 0 && m.statColumns) {
+                statsHtml = `<table style="font-size:12px; margin-top:10px;"><tr><th style="width:40px;">背番</th><th>名前</th>`; m.statColumns.forEach(c => statsHtml += `<th>${c}</th>`); statsHtml += `</tr>`;
+                m.stats.forEach(st => { statsHtml += `<tr><td>${st.number||'-'}</td><td style="text-align:left;">${st.name}</td>`; m.statColumns.forEach(c => statsHtml += `<td>${st.values[c]!==undefined?st.values[c]:''}</td>`); statsHtml += `</tr>`; }); statsHtml += "</table>";
+            }
+
+            let refs = m.reflections || [];
+            refs.sort((a,b) => { if(a.role==='teacher' && b.role!=='teacher') return -1; if(a.role!=='teacher' && b.role==='teacher') return 1; return new Date(a.createdAt) - new Date(b.createdAt); });
+            let commHtml = `<div id="details-${m.id}" style="display:none; margin-top:15px; border-top:2px dashed #ccc; padding-top:10px;">${linksHtml}${imgHtml}${statsHtml}`;
+            refs.forEach(c => {
+                let isT = c.role === 'teacher'; let dateStr = new Date(c.createdAt).toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+                commHtml += `<div class="comment-box ${isT?'comment-teacher':''}">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong style="color:${isT?'#1565c0':'#ff9800'}">${isT?'👔 ':''}${c.authorName}</strong><span style="font-size:10px; color:#999;">${dateStr}</span></div>
+                    <div>${c.text}</div></div>`;
+            });
+            commHtml += `</div>`;
+
+            html += `<div class="match-card"><span style="background:#1565c0; color:white; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold;">${m.type||'試合'}</span>
+                <b style="font-size:15px; margin-left:10px;">📅 ${m.date} (${getWeekday(m.date)}) | ${m.name}</b><br><div style="font-size:22px; font-weight:800; margin:15px 0; text-align:center;">都留高 <span style="color:#1565c0;">${m.scoreOurs}</span> [${res}] <span style="color:#d32f2f;">${m.scoreTheirs}</span> ${m.opponent}</div>
+                <button class="btn btn-outline" style="width:100%; padding:10px; font-size:13px;" onclick="window.toggleDetails('${m.id}')">詳細・反省を見る (${refs.length}件) ▼</button>
+                ${commHtml}</div>`;
+        });
+        document.getElementById('matchListArea').innerHTML = html || "データがありません";
+    };
+</script>
+</body>
+</html>
