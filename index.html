@@ -15,26 +15,31 @@
         .tab-button.active { background: #1565c0; color: white; box-shadow: 0 4px 10px rgba(21,101,192,0.3); }
         .tab-content { display: none; padding: 15px; }
         .tab-content.active { display: block; }
+        
         .filter-bar { display: flex; align-items: center; gap: 10px; background: white; padding: 12px 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px; border: 1px solid #eee; }
         .filter-label { font-weight: bold; color: #1565c0; font-size: 13px; white-space: nowrap; }
         .filter-select { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: #fafafa; outline: none; }
         .filter-btn { padding: 8px 12px; background: #eceff1; border: none; border-radius: 6px; cursor: pointer; color: #333; font-weight: bold; font-size: 12px; transition: 0.2s; white-space: nowrap; }
+        
         .form-group { margin-bottom: 15px; }
         .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .btn-outline { background: white; color: #1565c0; border: 2px solid #1565c0; box-shadow: none; }
-        .btn-compact { padding: 4px 8px; font-size: 11px; min-width: auto; height: fit-content; margin-top: 0; box-shadow: none; border-radius: 6px;}
+        .btn-compact { padding: 4px 8px; font-size: 11px; min-width: auto; height: fit-content; margin-top: 0; box-shadow: none; border-radius: 4px;}
+        
         .schedule-card { border: 1px solid #eee; padding: 20px; margin-bottom: 15px; border-radius: 12px; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        #calendar { max-width: 100%; height: 450px; margin-bottom: 20px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.03);}
+        #calendar { max-width: 100%; height: 450px; margin-bottom: 20px; background: white; padding: 5px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.03);}
         .fc-event-title { font-size: 10px; font-weight: bold; white-space: normal !important; line-height: 1.2;}
         .fc-h-event { border: none !important; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; background: white; border-radius: 8px; overflow: hidden; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #1565c0; color: white; font-weight: normal; }
+        
         .match-card { background: white; border: 1px solid #eee; border-left: 6px solid #1565c0; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .comment-box { background:#f5f5f5; padding:12px; border-radius:8px; margin-bottom:10px; font-size:13px; text-align:left; border-left:4px solid #ccc;}
         .comment-teacher { background:#e3f2fd; border-left:4px solid #1565c0; }
-        .user-header { display: flex; justify-content: flex-end; padding: 15px 20px; background: #e3f2fd; margin: 15px; border-radius: 10px; border-left: 4px solid #1565c0; }
+        .user-header { display: flex; justify-content: flex-end; padding: 10px 15px; background: #e3f2fd; margin: 15px; border-radius: 10px; border-left: 4px solid #1565c0;}
     </style>
 </head>
 <body>
@@ -101,6 +106,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app); const db = getFirestore(app);
     let calendar, globalSchedules = [], globalMorning = [], globalMatches = [];
+    let schedulesMap = {}; let morningSet = new Set();
 
     function getWeekday(dStr) { if(!dStr) return ''; const days = ['日','月','火','水','木','金','土']; return days[new Date(dStr).getDay()]; }
 
@@ -142,9 +148,18 @@
 
     async function loadAllData() {
         await loadSettings();
-        globalSchedules = (await getDocs(collection(db, "schedules"))).docs.map(d=>({id:d.id, ...d.data()}));
-        globalMorning = (await getDocs(collection(db, "morning"))).docs.map(d=>d.id);
-        globalMatches = (await getDocs(query(collection(db, "matches"), orderBy("date", "desc")))).docs.map(d=>({id:d.id, ...d.data()}));
+        const [schedSnap, mornSnap, matchSnap] = await Promise.all([
+            getDocs(collection(db, "schedules")),
+            getDocs(collection(db, "morning")),
+            getDocs(query(collection(db, "matches"), orderBy("date", "desc")))
+        ]);
+        globalSchedules = schedSnap.docs.map(d=>({id:d.id, ...d.data()}));
+        globalMorning = mornSnap.docs.map(d=>d.id);
+        globalMatches = matchSnap.docs.map(d=>({id:d.id, ...d.data()}));
+
+        schedulesMap = {};
+        globalSchedules.forEach(s => { if (!schedulesMap[s.date]) schedulesMap[s.date] = []; schedulesMap[s.date].push(s); });
+        morningSet = new Set(globalMorning);
     }
 
     window.openTab = function(evt, tabId) {
@@ -153,36 +168,43 @@
         if (tabId === 'tab-view-schedule' && calendar) calendar.render();
     };
 
+    function getEvents() {
+        return globalSchedules.map(d => {
+            let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' : '');
+            let locStr = (d.location && d.location !== '都留高') ? d.location : '';
+            let bg = d.eventType==='練習試合' ? '#ff9800' : (d.eventType==='公式戦'?'#f44336':'#4CAF50');
+            return { id: d.id, title: `[${d.eventType||'練習'}] ${timeStr} ${locStr}`, start: d.date, allDay: true, backgroundColor: bg, borderColor: bg, extendedProps: d };
+        });
+    }
+
+    function renderEventHtml(arg) {
+        let d = arg.event.extendedProps;
+        let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' : '');
+        let locStr = (d.location && d.location !== '都留高') ? d.location : '';
+        let bg = d.eventType==='練習試合' ? '#ff9800' : (d.eventType==='公式戦'?'#f44336':'#4CAF50');
+        let html = `<div style="background:${bg}; color:white; padding:2px; border-radius:3px; font-size:9px; text-align:center;"><div>[${d.eventType||'練習'}]</div>`;
+        if(timeStr) html += `<div>${timeStr}</div>`; if(locStr) html += `<div>${locStr}</div>`; html += `</div>`; return { html: html };
+    }
+
+    function renderDayCell(arg) {
+        const localStr = new Date(arg.date.getTime() - (arg.date.getTimezoneOffset()*60000)).toISOString().split('T')[0];
+        const dayEvents = schedulesMap[localStr] || [];
+        const hasRem = dayEvents.some(s => s.remarks);
+        const hasMorn = morningSet.has(localStr);
+        let badges = ''; if(hasMorn) badges += '<span style="color:#ff9800; font-weight:bold; margin-left:4px;">〇</span>'; if(hasRem) badges += '<span style="color:red; font-weight:bold; margin-left:2px;">*</span>';
+        return { html: `<div style="text-align:right; padding:2px;">${arg.dayNumberText}${badges}</div>` };
+    }
+
     function initCalendar() {
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
             initialView: 'dayGridMonth', locale: 'ja', headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
-            events: globalSchedules.map(d => {
-                let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' : '');
-                let locStr = (d.location && d.location !== '都留高') ? d.location : '';
-                let bg = d.eventType==='練習試合' ? '#ff9800' : (d.eventType==='公式戦'?'#f44336':'#4CAF50');
-                return { id: d.id, title: `[${d.eventType||'練習'}] ${timeStr} ${locStr}`, start: d.date, allDay: true, backgroundColor: bg, borderColor: bg, extendedProps: d };
-            }),
-            eventContent: function(arg) {
-                let d = arg.event.extendedProps;
-                let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' : '');
-                let locStr = (d.location && d.location !== '都留高') ? d.location : '';
-                let bg = d.eventType==='練習試合' ? '#ff9800' : (d.eventType==='公式戦'?'#f44336':'#4CAF50');
-                let html = `<div style="background:${bg}; color:white; padding:2px; border-radius:3px; font-size:9px; text-align:center;"><div>[${d.eventType||'練習'}]</div>`;
-                if(timeStr) html += `<div>${timeStr}</div>`; if(locStr) html += `<div>${locStr}</div>`; html += `</div>`; return { html: html };
-            },
-            dayCellContent: function(arg) {
-                const localStr = new Date(arg.date.getTime() - (arg.date.getTimezoneOffset()*60000)).toISOString().split('T')[0];
-                const hasRem = globalSchedules.some(s => s.date === localStr && s.remarks);
-                const hasMorn = globalMorning.includes(localStr);
-                let badges = ''; if(hasMorn) badges += '<span style="color:#ff9800; font-weight:bold; margin-left:4px;">〇</span>'; if(hasRem) badges += '<span style="color:red; font-weight:bold; margin-left:2px;">*</span>';
-                return { html: `<div style="text-align:right; padding:2px;">${arg.dayNumberText}${badges}</div>` };
-            },
+            events: getEvents(), eventContent: renderEventHtml, dayCellContent: renderDayCell,
             eventClick: function(info) {
                 const d = info.event.extendedProps; document.getElementById('viewDetailArea').style.display = 'block'; 
                 document.getElementById('viewDetailTitle').innerText = `📅 ${d.date} (${getWeekday(d.date)}) の詳細`;
                 let timeStr = d.timeType === 'half' ? d.halfType : (d.startTime ? d.startTime + '〜' + (d.endTime||'') : '未定');
                 let detail = `<b style="color:#1565c0;">【${d.eventType}】</b><br><br><b>時間:</b> ${timeStr}<br><b>場所:</b> ${d.location||'未定'}<br><b>備考:</b> ${d.remarks||'なし'}<br>`;
-                if (globalMorning.includes(d.date)) detail += `<br><span style="color:#ff9800; font-weight:bold;">🌅 朝練あり(〇)</span>`;
+                if (morningSet.has(d.date)) detail += `<br><span style="color:#ff9800; font-weight:bold;">🌅 朝練あり(〇)</span>`;
                 document.getElementById('viewDetailContent').innerHTML = detail; document.getElementById('viewDetailArea').scrollIntoView({ behavior: 'smooth' });
             }
         });
@@ -197,7 +219,7 @@
         globalMatches.forEach(m => {
             if(filter !== 'すべて' && m.type !== filter) return;
             const res = m.scoreOurs > m.scoreTheirs ? "<span style='color:red'>勝利</span>" : (m.scoreOurs < m.scoreTheirs ? "<span style='color:blue'>敗北</span>" : "引分");
-            let imgHtml = m.imageUrl ? `<img src="${m.imageUrl}" style="max-width:100%; border-radius:4px; margin-top:10px;">` : '';
+            let imgHtml = m.imageUrl ? `<img src="${m.imageUrl}" style="max-width:100%; border-radius:6px; margin-top:10px;">` : '';
             let linksHtml = ""; for(let i=1; i<=5; i++) if(m['linkUrl'+i]) linksHtml += `<a href="${m['linkUrl'+i]}" target="_blank" style="display:inline-block; margin-right:15px; margin-bottom:8px; color:#1565c0; font-weight:bold; text-decoration:none;">🔗 ${m['linkTitle'+i]||'リンク'+i}</a>`;
             if(linksHtml) linksHtml = `<div style="margin:10px 0; font-size:13px; background:#e3f2fd; padding:10px; border-radius:6px;">${linksHtml}</div>`;
             
