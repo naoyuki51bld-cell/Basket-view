@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1565c0">
     <title>都留高男子バスケ部の軌跡 (保護者・OB用)</title>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <!-- ⚡ 通信先への接続を先に始めておく（初回表示の短縮） -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js">
+    <!-- ⚡ defer: カレンダー部品の読み込みで画面表示を止めない -->
+    <script defer src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <style>
         html, body { height: 100%; margin: 0; padding: 0; background-color: #e3f2fd; font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; -webkit-tap-highlight-color: transparent; }
         .container { display: flex; flex-direction: column; height: 100%; max-width: 600px; width: 100%; margin: 0 auto; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.1); overflow: hidden; padding-bottom: 20px;}
@@ -109,27 +117,31 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, onSnapshot, collection, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAAkU_rCv3qhu1hnYIKf2909eHsCGeFhko", authDomain: "share-basket-73d63.firebaseapp.com", projectId: "share-basket-73d63", storageBucket: "share-basket-73d63.firebasestorage.app", messagingSenderId: "46798696089", appId: "1:46798696089:web:0efca85070d97f5119d208" };
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app); const db = getFirestore(app);
+    const auth = getAuth(app);
+    // ⚡ 端末内キャッシュ（IndexedDB）を有効化：2回目以降はキャッシュから即表示し、差分だけ通信する
+    let db;
+    try { db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+    catch (e) { db = getFirestore(app); }
+    // ⚡ 匿名ログインは裏で開始し、画面表示はそれを待たない
+    const authReady = signInAnonymously(auth).catch(e => { console.error("接続エラー", e); });
+
     let calendar, globalSchedules = [], globalMorning = [], globalMatches = [];
     let schedulesMap = {}; let morningSet = new Set(); let remarksSet = new Set(); // 🚀 高速化用
 
     function getWeekday(dStr) { if(!dStr) return ''; const days = ['日','月','火','水','木','金','土']; return days[new Date(dStr).getDay()]; }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            await signInAnonymously(auth);
-            if (localStorage.getItem('basketball_viewer_logged_in') === 'true') { showMainScreen(); }
-        } catch(e) { console.error("接続エラー"); }
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('basketball_viewer_logged_in') === 'true') { showMainScreen(); }
     });
 
     window.login = async () => { 
         const inputPass = document.getElementById('viewerPass').value.trim();
         if(!inputPass) return document.getElementById('msg-login').innerText = "パスワードを入力してください";
-        
+        await authReady;
         const snap = await getDoc(doc(db, "settings", "general"));
         let correctPass = snap.exists() && snap.data().viewerPassword ? snap.data().viewerPassword : "";
 
@@ -142,37 +154,66 @@
 
     async function showMainScreen() {
         document.getElementById('loginArea').style.display = 'none'; document.getElementById('mainArea').style.display = 'flex';
-        await loadAllData(); initCalendar(); window.loadMatches();
+        // ⚡ カレンダーの枠を先に出し、データは届き次第流し込む
+        initCalendar();
+        await loadAllData(); refreshCalendar(); window.loadMatches();
     }
 
-    async function loadSettings() {
-        const snap = await getDoc(doc(db, "settings", "general"));
-        if(snap.exists() && snap.data().noticeVisible && snap.data().noticeText) {
+    function applySettings(data) {
+        if(data && data.noticeVisible && data.noticeText) {
             document.getElementById('noticeArea').style.display = 'block';
-            document.getElementById('noticeContent').innerText = snap.data().noticeText;
+            document.getElementById('noticeContent').innerText = data.noticeText;
         } else {
             document.getElementById('noticeArea').style.display = 'none';
         }
     }
 
-    async function loadAllData() {
-        await loadSettings();
-        const [schedSnap, mornSnap, matchSnap] = await Promise.all([
-            getDocs(collection(db, "schedules")),
-            getDocs(collection(db, "morning")),
-            getDocs(query(collection(db, "matches"), orderBy("date", "desc")))
-        ]);
-        globalSchedules = schedSnap.docs.map(d=>({id:d.id, ...d.data()}));
-        globalMorning = mornSnap.docs.map(d=>d.id);
-        globalMatches = matchSnap.docs.map(d=>({id:d.id, ...d.data()}));
-
+    function rebuildScheduleIndex() {
         schedulesMap = {}; remarksSet = new Set();
         globalSchedules.forEach(s => { 
             if (!schedulesMap[s.date]) schedulesMap[s.date] = []; 
             schedulesMap[s.date].push(s); 
             if(s.remarks) remarksSet.add(s.date);
         });
-        morningSet = new Set(globalMorning);
+    }
+
+    // ⚡ リアルタイム同期：毎回全件を取り直す代わりに、変更があった分だけ自動で反映する
+    let liveReady = null, uiTimer = null; const pendingUi = new Set();
+    function queueUi(name) { pendingUi.add(name); if (uiTimer) return; uiTimer = setTimeout(() => { uiTimer = null; const changed = new Set(pendingUi); pendingUi.clear(); onLiveChange(changed); }, 80); }
+    function listen(name, target, apply) {
+        return new Promise(resolve => {
+            let first = true;
+            onSnapshot(target, snap => { apply(snap); queueUi(name); if (first) { first = false; resolve(); } },
+                err => { console.error(name, err); if (first) { first = false; resolve(); } });
+        });
+    }
+    function startLive() {
+        if (liveReady) return liveReady;
+        liveReady = authReady.then(() => Promise.all([
+            listen('settings', doc(db, "settings", "general"), s => applySettings(s.exists() ? s.data() : null)),
+            listen('schedules', collection(db, "schedules"), s => { globalSchedules = s.docs.map(d=>({id:d.id, ...d.data()})); rebuildScheduleIndex(); }),
+            listen('morning', collection(db, "morning"), s => { globalMorning = s.docs.map(d=>d.id); morningSet = new Set(globalMorning); }),
+            listen('matches', query(collection(db, "matches"), orderBy("date", "desc")), s => { globalMatches = s.docs.map(d=>({id:d.id, ...d.data()})); })
+        ]));
+        return liveReady;
+    }
+    // 互換用：初回同期が終わるまで待つだけ（2回目以降は一瞬で終わる）
+    async function loadAllData() { await startLive(); }
+
+    function refreshCalendar() {
+        if (!calendar) return;
+        calendar.batchRendering(() => { calendar.removeAllEventSources(); calendar.addEventSource(getEvents()); });
+        calendar.render();
+    }
+    // 開いている詳細や入力中の内容を消さないよう、閉じている時だけ自動で描き直す
+    function isPristine(el) {
+        if (!el || !el.classList.contains('active')) return false;
+        if ([...el.querySelectorAll('[id^="details-"]')].some(x => x.style.display === 'block')) return false;
+        return true;
+    }
+    function onLiveChange(changed) {
+        if (changed.has('schedules') || changed.has('morning')) refreshCalendar();
+        if (changed.has('matches') && isPristine(document.getElementById('tab-view-match'))) window.loadMatches();
     }
 
     window.openTab = function(evt, tabId) {
@@ -231,7 +272,7 @@
         globalMatches.forEach(m => {
             if(filter !== 'すべて' && m.type !== filter) return;
             const res = m.scoreOurs > m.scoreTheirs ? "<span style='color:red'>勝利</span>" : (m.scoreOurs < m.scoreTheirs ? "<span style='color:blue'>敗北</span>" : "引分");
-            let imgHtml = m.imageUrl ? `<img src="${m.imageUrl}" style="max-width:100%; border-radius:6px; margin-top:10px;">` : '';
+            let imgHtml = m.imageUrl ? `<img src="${m.imageUrl}" loading="lazy" decoding="async" style="max-width:100%; border-radius:6px; margin-top:10px;">` : '';
             let linksHtml = ""; for(let i=1; i<=5; i++) if(m['linkUrl'+i]) linksHtml += `<a href="${m['linkUrl'+i]}" target="_blank" style="display:inline-block; margin-right:15px; margin-bottom:8px; color:#1565c0; font-weight:bold; text-decoration:none;">🔗 ${m['linkTitle'+i]||'リンク'+i}</a>`;
             if(linksHtml) linksHtml = `<div style="margin:10px 0; font-size:13px; background:#e3f2fd; padding:10px; border-radius:6px;">${linksHtml}</div>`;
             
@@ -261,4 +302,4 @@
     };
 </script>
 </body>
-</html>
+</html>
