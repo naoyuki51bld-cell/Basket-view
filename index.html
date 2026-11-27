@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1565c0">
+    <meta name="theme-color" content="#0b1220">
     <title>都留高男子バスケ部の軌跡 (保護者・OB用)</title>
     <!-- ⚡ 通信先への接続を先に始めておく（初回表示の短縮） -->
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
@@ -57,6 +57,127 @@
         .fc-event-title { font-size: 10px; font-weight: bold; white-space: normal !important; line-height: 1.2; }
         .fc-toolbar-title { font-size: 1.1em !important; }
         .fc-button { padding: 0.3em 0.5em !important; font-size: 0.9em !important; }
+    </style>
+    <style id="theme">
+        /* ===== 🎨 テーマ色（このアプリ専用） ===== */
+        :root { --accent: #2563eb; --accent-dark: #1e3a8a; --accent-soft: #eff6ff; --accent-line: #dbeafe; --accent-ring: rgba(37,99,235,.18); --accent-bright: #93c5fd; --role: "保護者・OB"; }
+        /* ===== 🎨 デザインテーマ（共通） ===== */
+        :root {
+            --ink: #0f172a; --ink-2: #334155; --muted: #64748b; --line: #e8ecf1; --bg: #f3f5f8; --card: #ffffff;
+            --radius: 16px; --radius-sm: 12px;
+            --shadow: 0 1px 2px rgba(15,23,42,.05), 0 6px 20px rgba(15,23,42,.06);
+            --fc-border-color: #edf0f4; --fc-today-bg-color: var(--accent-soft); --fc-neutral-bg-color: #f8fafc;
+            --fc-button-bg-color: #fff; --fc-button-border-color: var(--line); --fc-button-text-color: var(--ink-2);
+            --fc-button-hover-bg-color: var(--accent-soft); --fc-button-hover-border-color: var(--line);
+            --fc-button-active-bg-color: var(--accent); --fc-button-active-border-color: var(--accent);
+        }
+        html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif; -webkit-font-smoothing: antialiased; }
+        .container { background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(15,23,42,.08); padding-bottom: 0; }
+
+        /* ヘッダー：濃紺 × チームカラーのグラデーション */
+        .app-header { position: relative; overflow: hidden; text-align: left; padding: 18px 20px 16px; padding-top: max(18px, env(safe-area-inset-top));
+            background: radial-gradient(120% 140% at 100% 0%, var(--accent) 0%, transparent 55%), linear-gradient(135deg, #0b1220 0%, var(--accent-dark) 100%); }
+        .app-header::after { content: ""; position: absolute; right: -36px; top: -36px; width: 140px; height: 140px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.12); box-shadow: inset 0 0 0 30px rgba(255,255,255,.03); pointer-events: none; }
+        .app-header h1 { font-size: 17px; font-weight: 800; letter-spacing: .04em; display: flex; flex-direction: column; gap: 4px; }
+        .app-header h1::before { content: var(--role); align-self: flex-start; font-size: 10px; font-weight: 700; letter-spacing: .12em; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); color: rgba(255,255,255,.92); }
+        #authStatus { text-align: left !important; }
+
+        /* ユーザー行 */
+        .user-header { background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 16px; color: var(--ink-2); font-weight: 700; }
+        .user-header .btn-compact { background: #f1f5f9 !important; color: var(--muted) !important; border-radius: 999px !important; padding: 6px 14px !important; font-weight: 700; }
+
+        /* タブ：スクロールできるピル型 */
+        .tabs { background: var(--card); border-bottom: 1px solid var(--line); gap: 6px; padding: 8px 12px; }
+        .tab-button { padding: 8px 14px; border-radius: 999px; border: none !important; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; margin: 0; }
+        .tab-button.active { background: var(--accent-soft); color: var(--accent-dark); border: none !important; box-shadow: inset 0 0 0 1px var(--accent-line); }
+
+        .tab-content { padding: 16px; padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+
+        /* カード類 */
+        .schedule-card, .form-area, .filter-bar, .match-card, .practice-menu-card, #calendar, #calendarView, #calendarInput {
+            background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .schedule-card { padding: 16px; }
+        .form-area { padding: 18px; }
+        .filter-bar { padding: 10px 12px; gap: 10px; }
+        .filter-label { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+        h3, h4 { letter-spacing: .02em; }
+
+        /* 入力欄 */
+        input[type="text"], input[type="password"], input[type="number"], input[type="url"], input[type="date"], input[type="time"], select, textarea, .filter-select {
+            border: 1px solid #dfe4ea !important; border-radius: var(--radius-sm) !important; background: #f8fafc !important; color: var(--ink); font-family: inherit;
+            transition: border-color .15s, box-shadow .15s, background .15s; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent) !important; background: #fff !important; box-shadow: 0 0 0 4px var(--accent-ring) !important; }
+        .form-group label.title { color: var(--ink-2); font-size: 12px; letter-spacing: .04em; }
+
+        /* ボタン */
+        .btn { border-radius: var(--radius-sm); font-weight: 800; letter-spacing: .03em; box-shadow: 0 1px 2px rgba(15,23,42,.08); transition: transform .1s, filter .15s, box-shadow .15s; }
+        .btn:hover { filter: brightness(1.05); }
+        .btn:active { transform: scale(.98); opacity: 1; }
+        .btn-primary { background: var(--accent); box-shadow: 0 6px 16px var(--accent-ring); }
+        .btn-success { background: #22c55e; } .btn-danger { background: #ef4444; } .btn-secondary { background: #64748b; }
+        .btn-outline, .filter-btn { background: var(--accent-soft); color: var(--accent-dark); border: 1px solid var(--accent-line); box-shadow: none; }
+        .btn-compact { border-radius: 999px; }
+        .btn:disabled { background: #cbd5e1 !important; box-shadow: none; }
+
+        /* 出欠ボタン */
+        .status-options span { border-radius: var(--radius-sm); background: #f1f5f9; color: #94a3b8; }
+
+        /* 表 */
+        .table-wrap { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+        table { font-size: 13px; }
+        th { background: #f8fafc !important; color: var(--muted) !important; font-size: 11px; font-weight: 800; letter-spacing: .06em; border-bottom: 1px solid var(--line); }
+        th, td { border-right: none; border-bottom: 1px solid #f1f3f6; padding: 10px 8px; }
+        tr:last-child td { border-bottom: none; }
+
+        /* 試合カード：スコアボード */
+        .match-card { border-left: none; padding: 16px; overflow: hidden; }
+        .match-card::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); }
+        .match-card { position: relative; }
+        .mc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-right: 56px; }
+        .mc-type { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-dark); }
+        .mc-type.official { background: #fee2e2; color: #b91c1c; }
+        .mc-date { font-size: 12px; color: var(--muted); font-weight: 700; }
+        .mc-name { font-size: 15px; font-weight: 800; margin-top: 6px; color: var(--ink); }
+        .scoreboard { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 14px 0; padding: 14px 10px; border-radius: 14px; background: linear-gradient(135deg, #0b1220, #1e293b); color: #fff; }
+        .sb-team { text-align: center; min-width: 0; }
+        .sb-name { font-size: 12px; font-weight: 700; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sb-score { font-size: 34px; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+        .sb-team.ours .sb-score { color: var(--accent-bright); }
+        .sb-result { font-size: 11px; font-weight: 900; letter-spacing: .1em; padding: 4px 10px; border-radius: 999px; }
+        .sb-result.win { background: #22c55e; color: #fff; } .sb-result.lose { background: #475569; color: #e2e8f0; } .sb-result.draw { background: #f59e0b; color: #fff; }
+
+        /* コメント：チャット風 */
+        .comment-box { background: #f8fafc; border: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: 14px; border-top-left-radius: 4px; padding: 12px 14px; }
+        .comment-teacher { background: var(--accent-soft); border-color: var(--accent-line); border-left: 1px solid var(--accent-line); }
+
+        /* カレンダー */
+        #calendar, #calendarView, #calendarInput { padding: 10px 8px; font-size: 12px; }
+        .fc .fc-toolbar.fc-header-toolbar { margin-bottom: 10px; }
+        .fc .fc-toolbar-title { font-size: 16px !important; font-weight: 800; color: var(--ink); }
+        .fc .fc-button { border-radius: 10px !important; box-shadow: none !important; font-weight: 700; }
+        .fc .fc-button-primary:disabled { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent-line); opacity: 1; }
+        .fc .fc-col-header-cell { background: transparent !important; }
+        .fc .fc-col-header-cell-cushion { color: var(--muted); font-size: 11px; font-weight: 800; padding: 6px 0; text-decoration: none; }
+        .fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion { color: #ef4444; }
+        .fc .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion { color: #3b82f6; }
+        .fc .fc-scrollgrid { border-radius: 12px; overflow: hidden; }
+        .fc .fc-daygrid-day-number { color: var(--ink-2); text-decoration: none; font-weight: 700; }
+        .fc .fc-day-other .fc-daygrid-day-top { opacity: .35; }
+        .fc .fc-daygrid-day.fc-day-today { background: var(--accent-soft) !important; }
+        .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { color: var(--accent-dark); }
+        .fc .fc-daygrid-event { border: none; border-radius: 6px; overflow: hidden; margin: 1px 2px 0; }
+        .fc .fc-daygrid-event > div { border-radius: 6px !important; }
+
+        /* ログイン画面 */
+        #loginArea, #authArea { padding: 28px 20px !important; }
+        #loginArea::before, #loginForm::before, #registerForm::before { content: "🏀"; display: block; width: 64px; height: 64px; margin: 4px auto 14px; border-radius: 20px; font-size: 32px; line-height: 64px; text-align: center; background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+        #loginArea { background: var(--bg); }
+
+        /* その他バッジ */
+        .stat-col-badge { background: #f1f5f9; border: 1px solid var(--line); }
+        .btn { background: var(--accent); }
+        .btn.btn-outline { background: var(--accent-soft); }
     </style>
 </head>
 <body>
@@ -245,7 +366,7 @@
         const hasRem = remarksSet.has(localStr);
         const hasMorn = morningSet.has(localStr);
         let badges = ''; if(hasMorn) badges += '<span style="color:#ff9800; font-weight:bold; margin-left:4px;">〇</span>'; if(hasRem) badges += '<span style="color:red; font-weight:bold; margin-left:2px;">*</span>';
-        return { html: `<div style="text-align:right; padding:2px;">${arg.dayNumberText}${badges}</div>` };
+        return { html: `<div style="text-align:right; padding:2px;">${arg.dayNumberText.replace('日','')}${badges}</div>` };
     }
 
     function initCalendar() {
@@ -293,8 +414,9 @@
             });
             commHtml += `</div>`;
 
-            html += `<div class="match-card"><span style="background:#1565c0; color:white; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold;">${m.type||'試合'}</span>
-                <b style="font-size:15px; margin-left:10px;">📅 ${m.date} (${getWeekday(m.date)}) | ${m.name}</b><br><div style="font-size:22px; font-weight:800; margin:15px 0; text-align:center;">都留高 <span style="color:#1565c0;">${m.scoreOurs}</span> [${res}] <span style="color:#d32f2f;">${m.scoreTheirs}</span> ${m.opponent}</div>
+            html += `<div class="match-card"><div class="mc-head"><span class="mc-type ${m.type==='公式戦'?'official':''}">${m.type||'試合'}</span><span class="mc-date">${m.date} (${getWeekday(m.date)})</span></div>
+                <div class="mc-name">${m.name||''}</div>
+                <div class="scoreboard"><div class="sb-team ours"><div class="sb-name">都留高</div><div class="sb-score">${m.scoreOurs}</div></div><span class="sb-result ${m.scoreOurs > m.scoreTheirs ? 'win' : (m.scoreOurs < m.scoreTheirs ? 'lose' : 'draw')}">${m.scoreOurs > m.scoreTheirs ? 'WIN' : (m.scoreOurs < m.scoreTheirs ? 'LOSE' : 'DRAW')}</span><div class="sb-team"><div class="sb-name">${m.opponent}</div><div class="sb-score">${m.scoreTheirs}</div></div></div>
                 <button class="btn btn-outline" style="width:100%; padding:10px; font-size:13px;" onclick="window.toggleDetails('${m.id}')">詳細・反省を見る (${refs.length}件) ▼</button>
                 ${commHtml}</div>`;
         });
